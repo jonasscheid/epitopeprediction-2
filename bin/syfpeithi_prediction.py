@@ -10,7 +10,14 @@ from functools import reduce
 from epytope.Core import Allele, Peptide
 from epytope.EpitopePrediction import EpitopePredictorFactory
 
-logging.basicConfig(filename='syfpeithi.log', filemode='w',level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', force=True)
+# instantiate global logger object
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 def parse_args(argv=None) -> typing.List[str]:
     """
@@ -25,7 +32,6 @@ def parse_args(argv=None) -> typing.List[str]:
     parser.add_argument('--output', help='Output file containing the predicted epitopes')
     parser.add_argument('--min_peptide_length', type=int, default=8, help='Minimum length of the peptides')
     parser.add_argument('--max_peptide_length', type=int, default=12, help='Maximum length of the peptides')
-    parser.add_argument('--version', action='store_true', help='Tool version')
 
     return parser.parse_args(argv)
 
@@ -58,6 +64,9 @@ def rel_max_score(row, allele, matrix_max_score_dict) -> float:
     :return: rel-max-score of the peptide for the allele
     """
     # Syfpeithi supports only specific peptide length and allele combinations
+    logger.debug("row['sequence']", row['sequence'])
+    logger.debug(matrix_max_score_dict)
+
     if len(row['sequence']) not in matrix_max_score_dict[allele].keys():
         return np.nan
     half_max_score = (row[allele] / matrix_max_score_dict[allele][len(row['sequence'])]) * 100
@@ -69,21 +78,20 @@ def main():
     args = parse_args()
     # Define MHC binding tool using the epytope framework
     predictor = EpitopePredictorFactory("Syfpeithi")
-    logging.debug("blub")
-    if args.version:
-        logging.debug("blubb blubb")
-        sys.exit(f"{predictor.version}")
+    min_length_given_by_syfpeithi = 8
+    max_length_given_by_syfpeithi = 12
 
     input_file = pd.read_csv(args.input, sep='\t')
 
     # Build epytope Objects of peptides and alleles
     peptides = [Peptide(peptide) for peptide in input_file['sequence'] if len(peptide) >= args.min_peptide_length and len(peptide) <= args.max_peptide_length]
+    print("peptides", peptides)
     # Check if alleles are supported by the predictor
     alleles = []
     for allele in args.alleles.split(';'):
         epytope_allele = Allele(allele)
         if epytope_allele not in predictor.supportedAlleles:
-            logging.warning(f'Allele {allele} is not supported by syfpeithi. No prediction was made.')
+            logger.warning(f'Allele {allele} is not supported by syfpeithi. No prediction was made.')
             continue
         alleles.append(epytope_allele)
 
@@ -91,9 +99,11 @@ def main():
     matrix_max_score_dict = {}
     for allele in alleles:
         len_score_dict = {}
-        for peptide_length in range(args.min_peptide_length, args.max_peptide_length):
+
+        for peptide_length in set(range(args.min_peptide_length, args.max_peptide_length+1)) & set(range(min_length_given_by_syfpeithi, max_length_given_by_syfpeithi+1)):
             matrix_max_score = get_matrix_max_score(allele, peptide_length)
             if matrix_max_score is np.nan:
+                logger.warning(f'Out of scope of requested peptide length {peptide_length}. No prediction was made.')
                 continue
             len_score_dict[peptide_length] = matrix_max_score
             matrix_max_score_dict[allele] = len_score_dict

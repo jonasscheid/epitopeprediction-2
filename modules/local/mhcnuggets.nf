@@ -15,21 +15,27 @@ process MHCNUGGETS {
     path "versions.yml", emit: versions
 
     script:
+    def prefix = "${metadata.sample}_${peptide_file.baseName}"
+    def min_length = (metadata.mhc_class == "I") ? params.min_peptide_length_mhc_I : params.min_peptide_length_mhc_II
+    def max_length = (metadata.mhc_class == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
     """
-    touch mhcnuggets_prediction.log
-    mhcnuggets_prediction.py --input ${peptide_file} --output '${metadata.sample}_predicted_mhcnuggets.tsv' --alleles '${metadata.alleles}' --mhcclass ${metadata.mhc_class}
+    mhcnuggets_prediction.py --input ${peptide_file}\\
+        --output '${prefix}_predicted_mhcnuggets.tsv' \\
+        --alleles '${metadata.alleles}'\\
+        --min_peptide_length ${min_length} \\
+        --max_peptide_length ${max_length} \\
+        --mhcclass ${metadata.mhc_class}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
+        python \$(python --version | sed 's/Python //g')
+        mhcnuggets \$(python -c "import pkg_resources; print(pkg_resources.get_distribution('mhcnuggets').version)")
+
     END_VERSIONS
     """
 
-    //mhcgnomes: \$(python -c "from mhcgnomes import version; print(version.__version__)")
-    //TODO mhcnuggets version hinzufügen -> mhcnuggets:  \$(echo "2.4.0")
-
     stub:
     """
-    touch mhcnuggets_prediction.log
     touch ${metadata.sample}_predicted_mhcnuggets.tsv
     touch versions.yml
     """

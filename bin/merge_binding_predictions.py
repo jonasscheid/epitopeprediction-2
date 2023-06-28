@@ -5,8 +5,8 @@ import pandas as pd
 import typing
 import sys
 import logging
-import os
 import mhcgnomes
+from functools import reduce
 
 # Create a logger
 logging.basicConfig(filename='merge_prediction_outputs.log', filemode='w',level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', force=True)
@@ -19,6 +19,7 @@ def parse_args(argv=None) -> typing.List[str]:
     """
     parser = argparse.ArgumentParser(description='Harmonize prediction outputs')
     parser.add_argument('--input', required=True, help='Lists of paths to prediction outputs')
+    parser.add_argument('--original_file', required=True, help='Path to original input file contained in metadata')
     parser.add_argument('--output', required=True, help='Output file')
     parser.add_argument('--min_peptide_length', type=int, help='Minimum length of the peptides')
     parser.add_argument('--max_peptide_length', type=int, help='Maximum length of the peptides')
@@ -141,12 +142,13 @@ def main():
         prediction_result = PredictionResult(predictor, tmp_df, threshold)
         prediction_result.format_prediction_result()
         tmp_df = prediction_result.get_prediction_df()
-        # Filter peptides by length
-        tmp_df = tmp_df[tmp_df['sequence'].str.len().between(args.min_peptide_length, args.max_peptide_length)]
 
         tmp_dfs.append(tmp_df)
 
-    df = pd.concat(tmp_dfs, axis=0, ignore_index=True)
+    #merge elements in tmp_dfs on one column of dataframe
+    df = reduce(lambda left,right: pd.merge(left,right,on=['sequence'], how='outer', sort=True), tmp_dfs)
+    original_input = pd.read_csv(args.original_file, sep='\t')
+    df = pd.merge(original_input, df, on=['sequence'], how='outer', sort=True)
 
     #write df to tsv
     df.to_csv(f'{args.output}', sep='\t', index=False)

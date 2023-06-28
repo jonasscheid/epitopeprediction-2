@@ -2,7 +2,6 @@ process NETMHCPAN {
     label 'process_single'
     tag "${metadata.sample}"
 
-
     container 'ghcr.io/jonasscheid/epitopeprediction-2:netmhc'
 
     input:
@@ -22,10 +21,11 @@ process NETMHCPAN {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        NetMHCpan: \$(echo 4.1)
+        python \$(python --version | sed 's/Python //g')
+        netmhcpan \$(echo 4.1)
+        netmhcpan \$(cat data/version | sed -s 's/ version/:/g')
     END_VERSIONS
     """
-
     stub:
     """
     touch ${metadata.sample}_predicted_netmhcpan.tsv

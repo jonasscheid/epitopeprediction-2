@@ -68,8 +68,9 @@ include { MERGE_JSON as MERGE_JSON_MULTI }                                      
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 
-include { INPUT_CHECK }                 from '../subworkflows/local/input_check'
-include { MHC_BINDING_PREDICTION }      from '../subworkflows/local/mhc_binding_prediction'
+include { INPUT_CHECK }                                                             from '../subworkflows/local/input_check'
+include { MHC_BINDING_PREDICTION as MHC_BINDING_PREDICTION_PEP}                     from '../subworkflows/local/mhc_binding_prediction'
+include { MHC_BINDING_PREDICTION as MHC_BINDING_PREDICTION_PROTEIN}                 from '../subworkflows/local/mhc_binding_prediction'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -128,12 +129,17 @@ workflow EPITOPEPREDICTION {
 
     // Split fasta into chunks of 100 proteins to facilitate parallelization
     SEQKIT_SPLIT2 ( ch_samples_from_sheet.protein )
+    ch_versions = ch_versions.mix( SEQKIT_SPLIT2.out.versions.ifEmpty(null) )
 
     EPYTOPE_GENERATE_PEPTIDES( SEQKIT_SPLIT2.out.splitted.transpose() )
+    ch_versions = ch_versions.mix( EPYTOPE_GENERATE_PEPTIDES.out.versions.ifEmpty(null) )
 
-    MHC_BINDING_PREDICTION( EPYTOPE_GENERATE_PEPTIDES.out.splitted )
+    MHC_BINDING_PREDICTION_PROTEIN( EPYTOPE_GENERATE_PEPTIDES.out.splitted )
+    //TODO: peptide output mergen
+    //MHC_BINDING_PREDICTION_PROTEIN.out.ch_combined_predictions.view()
 
-    //MHC_BINDING_PREDICTION( ch_samples_from_sheet.peptide )
+
+    MHC_BINDING_PREDICTION_PEP( ch_samples_from_sheet.peptide )
 
     '''
     if (tools.isEmpty()) { exit 1, "No valid tools specified." }

@@ -8,14 +8,14 @@ process MERGE_PREDICTIONS {
         'quay.io/biocontainers/mhcgnomes:1.8.4--pyh7cba7a3_0' }"
 
     input:
-    tuple val(metadata), path(prediction_files)
+    tuple val(metadata), path(prediction_files), path(input_file)
 
     output:
     tuple val(metadata), path("*.tsv"), emit: merged
     path "versions.yml", emit: versions
 
     script:
-    def output = prediction_files.first().baseName.split("_").dropRight(2).join("")
+    def output = prediction_files.first().baseName.split("_").dropRight(2).join("_")
     def min_length = (metadata.mhc_class == "I") ? params.min_peptide_length_mhc_I : params.min_peptide_length_mhc_II
     def max_length = (metadata.mhc_class == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
 
@@ -27,7 +27,8 @@ process MERGE_PREDICTIONS {
 
     """
     merge_binding_predictions.py \
-        --input ${prediction_files} \
+        --input "${prediction_files}" \
+        --original_file "${input_file}"\
         --output ${output}.tsv \
         --min_peptide_length ${min_length} \
         --max_peptide_length ${max_length} \
@@ -40,8 +41,8 @@ process MERGE_PREDICTIONS {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        python: \$(python --version | sed 's/Python //g')
-        mhcgnomes: \$(mhcgnomes --version)
+        python \$(python --version | sed 's/Python //g')
+        mhcgnomes \$(python -c "from mhcgnomes import version; print(version.__version__)"   )
     END_VERSIONS
     """
 }
