@@ -14,12 +14,11 @@ include { MERGE_PREDICTIONS } from '../../modules/local/merge_predictions'
 workflow MHC_BINDING_PREDICTION {
     take:
         metadata_and_file
+        tools
 
     main:
         ch_versions = Channel.empty()
         ch_combined_predictions = Channel.empty()
-
-        tools = params.tools?.tokenize(',')
 
         if (tools.isEmpty()) { exit 1, "No valid tools specified." }
 
@@ -66,9 +65,11 @@ workflow MHC_BINDING_PREDICTION {
 
     //merge the prediction output of all tools into one output merged_prediction.tsv
     MERGE_PREDICTIONS (ch_combined_predictions)
+    ch_versions = ch_versions.mix(MERGE_PREDICTIONS.out.versions)
 
-
-    emit: ch_combined_predictions
+    emit:
+    predictions = MERGE_PREDICTIONS.out.merged
+    versions = ch_versions
 }
 
 // Functions

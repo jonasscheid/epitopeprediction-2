@@ -82,7 +82,6 @@ include { MHC_BINDING_PREDICTION as MHC_BINDING_PREDICTION_PROTEIN}             
 // MODULE: Installed directly from nf-core/modules
 //
 // TODO: Add subworkflow for querying biomart to come up with potential neoepitopes
-// TODO: Add subfworkflow for MHC binding prediction
 include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
@@ -127,19 +126,41 @@ workflow EPITOPEPREDICTION {
                     }
                 .set { ch_samples_from_sheet }
 
-    // Split fasta into chunks of 100 proteins to facilitate parallelization
+    // Gather the tools specified for mhc binding prediction
+    tools = params.tools?.tokenize(',')
+
+    // ####################################################
+    // #                PROTEIN PREDICTION                #
+    // ####################################################
+    // Split fasta into chunks of proteins to facilitate parallelization
     SEQKIT_SPLIT2 ( ch_samples_from_sheet.protein )
     ch_versions = ch_versions.mix( SEQKIT_SPLIT2.out.versions.ifEmpty(null) )
 
     EPYTOPE_GENERATE_PEPTIDES( SEQKIT_SPLIT2.out.splitted.transpose() )
     ch_versions = ch_versions.mix( EPYTOPE_GENERATE_PEPTIDES.out.versions.ifEmpty(null) )
 
-    MHC_BINDING_PREDICTION_PROTEIN( EPYTOPE_GENERATE_PEPTIDES.out.splitted )
-    //TODO: peptide output mergen
-    //MHC_BINDING_PREDICTION_PROTEIN.out.ch_combined_predictions.view()
+    // Add the splitted fasta files basename to meta
+    EPYTOPE_GENERATE_PEPTIDES.out.splitted
+        .map { meta, input_file -> tuple( meta + [ protein_split: input_file.baseName ], input_file ) }
+        .set { ch_peptides_from_protein }
+    ch_versions = ch_versions.mix( EPYTOPE_GENERATE_PEPTIDES.out.versions.ifEmpty(null) )
+
+    MHC_BINDING_PREDICTION_PROTEIN( ch_peptides_from_protein, tools )
+    ch_versions = ch_versions.mix( MHC_BINDING_PREDICTION_PROTEIN.out.versions.ifEmpty(null) )
+
+    // Group splitted protein predictions by meta
+    MHC_BINDING_PREDICTION_PROTEIN.out.predictions
+        .map { meta, input_file -> tuple( [sample:meta.sample, alleles:meta.alleles, mhc_class:meta.mhc_class], input_file ) }
+        .groupTuple()
+        .set { ch_proteins_test }
+
+    // Concatenate the chunks of predicted proteins together
+    // TODO: Make it nf-core module
+    CSVTK_CONCAT( ch_proteins_test )
+    ch_versions = ch_versions.mix( CSVTK_CONCAT.out.versions.ifEmpty(null) )
 
 
-    MHC_BINDING_PREDICTION_PEP( ch_samples_from_sheet.peptide )
+    MHC_BINDING_PREDICTION_PEP( ch_samples_from_sheet.peptide, tools )
 
     '''
     if (tools.isEmpty()) { exit 1, "No valid tools specified." }

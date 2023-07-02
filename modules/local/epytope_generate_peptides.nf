@@ -1,5 +1,5 @@
 process EPYTOPE_GENERATE_PEPTIDES {
-    label 'process_low'
+    label 'process_single'
     tag "${meta.sample}"
 
     conda "bioconda::epytope=3.1.0"

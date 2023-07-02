@@ -8,7 +8,7 @@ process MERGE_PREDICTIONS {
         'quay.io/biocontainers/mhcgnomes:1.8.4--pyh7cba7a3_0' }"
 
     input:
-    tuple val(metadata), path(prediction_files), path(input_file)
+    tuple val(metadata), path(prediction_files), path(metadata_file)
 
     output:
     tuple val(metadata), path("*.tsv"), emit: merged
@@ -27,9 +27,9 @@ process MERGE_PREDICTIONS {
 
     """
     merge_binding_predictions.py \
-        --input "${prediction_files}" \
-        --original_file "${input_file}"\
-        --output ${output}.tsv \
+        --input ${prediction_files} \
+        --input_metadata ${metadata_file} \
+        --output ${output}_merged.tsv \
         --min_peptide_length ${min_length} \
         --max_peptide_length ${max_length} \
         $syfpeithi_threshold \

@@ -15,9 +15,14 @@ process NETMHCPAN {
     if (metadata.mhc_class != "I") {
         error "NETMHCPAN only supports MHC class I. Use NETMHCIIPAN for MHC class II, or adjust the samplesheet accordingly."
     }
+    def prefix = peptide_file.baseName
 
     """
-    netmhcpan.py --input ${peptide_file} --alleles '${metadata.alleles}' --sample_id ${metadata.sample}
+    netmhcpan.py \
+        --input ${peptide_file} \
+        --output ${prefix}_predicted_netmhcpan.tsv \
+        --alleles '${metadata.alleles}' \
+        --sample_id ${metadata.sample}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

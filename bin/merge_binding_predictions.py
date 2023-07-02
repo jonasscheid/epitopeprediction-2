@@ -19,7 +19,7 @@ def parse_args(argv=None) -> typing.List[str]:
     """
     parser = argparse.ArgumentParser(description='Harmonize prediction outputs')
     parser.add_argument('--input', required=True, help='Lists of paths to prediction outputs')
-    parser.add_argument('--original_file', required=True, help='Path to original input file contained in metadata')
+    parser.add_argument('--input_metadata', required=True, help='Path to original input file contained in metadata')
     parser.add_argument('--output', required=True, help='Output file')
     parser.add_argument('--min_peptide_length', type=int, help='Minimum length of the peptides')
     parser.add_argument('--max_peptide_length', type=int, help='Maximum length of the peptides')
@@ -145,13 +145,14 @@ def main():
 
         tmp_dfs.append(tmp_df)
 
-    #merge elements in tmp_dfs on one column of dataframe
-    df = reduce(lambda left,right: pd.merge(left,right,on=['sequence'], how='outer', sort=True), tmp_dfs)
-    original_input = pd.read_csv(args.original_file, sep='\t')
-    df = pd.merge(original_input, df, on=['sequence'], how='outer', sort=True)
+    # Merge all prediction outputs
+    df = pd.concat(tmp_dfs, axis=1)
+    metadata = pd.read_csv(args.input_metadata, sep='\t')
+    # Inner join of metadata and prediction outputs on sequence -> Keep peptides only succeeding the threshold
+    df = pd.merge(metadata, df, on=['sequence'], how='inner', sort=True)
 
     #write df to tsv
-    df.to_csv(f'{args.output}', sep='\t', index=False)
+    df.to_csv(args.output, sep='\t', index=False)
 
 if __name__ == '__main__':
     main()

@@ -25,6 +25,7 @@ def parse_args(argv=None) -> typing.List[str]:
     """
     parser = argparse.ArgumentParser(description='Predicting epitopes using NetMHCpan')
     parser.add_argument('--input', required=True, help='Tab-separated input file containing the sequences')
+    parser.add_argument('--output', required=True, help='Output file name')
     parser.add_argument('--alleles', required=True, help='Input string containing the alleles')
     parser.add_argument('--sample_id', required=True, help='Sample IDs to be used in the output file')
     parser.add_argument('--min_peptide_length', type=int, default=8, help='Minimum length of the peptides')
@@ -82,7 +83,7 @@ def main():
             sp.run(['rm', f'{args.sample_id}_{allele}.xls'])
 
     combined_df = pd.concat(tmp_dfs)
-    combined_df.to_csv(f'{args.sample_id}_predicted_netmhcpan.tsv', sep='\t')
+    combined_df.to_csv(f'{args.output}', sep='\t')
 
 
 

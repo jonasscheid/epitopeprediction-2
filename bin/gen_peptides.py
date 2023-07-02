@@ -40,7 +40,6 @@ def read_protein_fasta(file):
 
 proteins = read_protein_fasta(args.input)
 
-c = 0
 for k in range(args.min_length, args.max_length + 1):
     peptides = generate_peptides_from_proteins(proteins, k)
     # get proteins and corresponding counts
@@ -48,20 +47,16 @@ for k in range(args.min_length, args.max_length + 1):
         [
             (
                 str(pep),
-                ",".join([prot.transcript_id.split(" ")[0] for prot in pep.get_all_proteins()]),
-                ",".join([str(len(pep.proteinPos[prot.transcript_id])) for prot in pep.get_all_proteins()]),
+                ",".join([prot.transcript_id.split(" ")[0] for prot in pep.get_all_proteins()])
             )
             for pep in peptides
         ],
-        columns=["sequence", "protein_ids", "counts"],
+        columns=["sequence", "protein_ids"],
     )
-    # assign id
-    pd_peptides = pd_peptides.assign(id=[str(c + id) for id in pd_peptides.index])
-    c += len(pd_peptides["sequence"])
 
     if k == args.min_length:
-        pd_peptides[["sequence", "id", "protein_ids", "counts"]].to_csv(args.output, sep="\t", index=False)
+        pd_peptides[["sequence", "protein_ids"]].to_csv(args.output, sep="\t", index=False)
     else:
-        pd_peptides[["sequence", "id", "protein_ids", "counts"]].to_csv(
+        pd_peptides[["sequence", "protein_ids"]].to_csv(
             args.output, sep="\t", index=False, mode="a", header=False
         )

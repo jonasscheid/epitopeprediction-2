@@ -19,7 +19,9 @@ process SEQKIT_SPLIT2 {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    seqkit split2 ${fasta} -s 100
+    seqkit split2 \\
+        ${fasta} \\
+        -s ${params.protein_split}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

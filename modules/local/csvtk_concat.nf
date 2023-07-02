@@ -10,13 +10,12 @@ process CSVTK_CONCAT {
     tuple val(meta), path(predicted)
 
     output:
-    tuple val(meta), path("*.tsv"), emit: predicted
+    tuple val(meta), path("*.tsv"), emit: concatenated
     path "versions.yml", emit: versions
 
     script:
     """
-    csvtk concat -t $predicted > ${meta.sample}_prediction_result_unsorted.tmp
-    csvtk sort -k chr:n,length:n ${meta.sample}_prediction_result_unsorted.tmp -t --out-file ${meta.sample}_prediction_result.tsv
+    csvtk concat -t $predicted > ${meta.sample}_predicted.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
