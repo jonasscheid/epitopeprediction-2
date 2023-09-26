@@ -52,7 +52,7 @@ def main():
                 logger.warning(f'{peptide} does not have the right length. Skipping..')
 
     # Check if input alleles are supported by netmhcpan
-    input_alleles = [allele.replace('*', '') for allele in args.alleles.split(';')]
+    input_alleles = [allele.replace('*', '').replace(':','') for allele in args.alleles.split(';')]
     # For this we need to catch the stdout of netmhcpan
     sp.run(['netmhcpan/netMHCpan', '-listMHC'], stdout=open('supported_alleles.txt', 'w'))
 
@@ -80,7 +80,7 @@ def main():
             tmp_df['allele'] = allele
             tmp_dfs.append(tmp_df)
             # Clean up intermediate files
-            sp.run(['rm', f'{args.sample_id}_{allele}.xls'])
+            #sp.run(['rm', f'{args.sample_id}_{allele}.xls'])
 
     combined_df = pd.concat(tmp_dfs)
     combined_df.to_csv(f'{args.output}', sep='\t')
