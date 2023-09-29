@@ -91,10 +91,10 @@ class RowChecker:
             raise AssertionError(f"No alleles specified.\nLine: {row}")
         if (
                 not os.path.isfile(row[self._alleles_col])
-                and (row[self._mhc_class_col] == "I"
-                and any(substring in row[self._alleles_col] for substring in valid_class2_loci))
-                or (row[self._mhc_class_col] == "II"
+                and not ((row[self._mhc_class_col] == "I"
                 and any(substring in row[self._alleles_col] for substring in valid_class1_loci))
+                or (row[self._mhc_class_col] == "II"
+                and any(substring in row[self._alleles_col] for substring in valid_class2_loci)))
             ):
                 raise AssertionError(f"Samplesheet contains invalid mhc class and allele combination!\nLine: {row} \
                                       \nValid loci: {valid_class1_loci if row[self._mhc_class_col] == 'I' else valid_class2_loci}")
@@ -248,7 +248,7 @@ def check_samplesheet(file_in, file_out):
 
             ## Parsing allele names to mhcgnomes convention
             alleles = row[1]
-            alleles = [mhcgnomes.parse(a).to_string() for a in alleles.split(';')]
+            alleles = [mhcgnomes.parse(a).to_string().replace('/','-') for a in alleles.split(';')] # TODO: Fix in nfcore Hacky way of dealing with DP, DQ
             #join elements of list in a string separated by ';'
             row[1] = ';'.join(alleles)
 

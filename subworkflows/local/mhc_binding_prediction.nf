@@ -54,8 +54,9 @@ workflow MHC_BINDING_PREDICTION {
         }
         if ( "netmhciipan" in tools )
         {
-        // TODO: External tools import for netmhciipan
-        NETMHCIIPAN (metadata_and_file)
+        EXTERNAL_TOOLS_IMPORT (parse_netmhc_params("netmhciipan", "4.2"))
+        EXTERNAL_TOOLS_IMPORT.out.nonfree_tools.view()
+        NETMHCIIPAN (metadata_and_file.combine(EXTERNAL_TOOLS_IMPORT.out.nonfree_tools))
         ch_versions = ch_versions.mix(NETMHCIIPAN.out.versions)
         ch_combined_predictions = ch_combined_predictions.join(NETMHCIIPAN.out.predicted, remainder: true)
         }

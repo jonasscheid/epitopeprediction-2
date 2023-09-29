@@ -43,27 +43,26 @@ process EXTERNAL_TOOLS_IMPORT {
     sed -i.bak \
         -e 's_bin/tcsh.*\$_opt/conda/bin/tcsh_' \
         -e "s_/scratch_/tmp_" \
-        -e "s_setenv[[:space:]]NMHOME.*_setenv NMHOME \\`realpath -s \\\$0 | sed -r 's/[^/]+\$//'\\`_ " "${toolname}/${toolbinaryname}"
+        -e "s_setenv[[:space:]]NMHOME.*_setenv NMHOME \\`realpath -s \\\$0 | sed -r 's/[^/]+\$//'| sed -r 's/.\$//'\\`_ " "${toolname}/${toolbinaryname}"
 
-    # MODIFY perl location in perl script for netmhcIIpan
-    if [ "$toolname" == "netmhciipan" ]; then
-        sed -i.bak \
-        -e 's_bin/perl.*\$_local/bin/perl_' "${toolname}/NetMHCIIpan-${toolversion}.pl"
-    fi
+
     #
     # VALIDATE THE CHECKSUM OF THE DOWNLOADED MODEL DATA
     #
-    checksum="\$(md5sum "$datatarball" | cut -f1 -d' ')"
-    if [ "\$checksum" != "${datachecksum}" ]; then
-        echo "A checksum mismatch occurred when checking the data file for ${toolname}." >&2
-        exit 3
+    if [ "$toolname" != "netmhciipan" ]; then
+        checksum="\$(md5sum "$datatarball" | cut -f1 -d' ')"
+        if [ "\$checksum" != "${datachecksum}" ]; then
+            echo "A checksum mismatch occurred when checking the data file for ${toolname}." >&2
+            exit 3
+        fi
     fi
 
     #
     # UNPACK THE DOWNLOADED MODEL DATA
     #
-    tar -C "${toolname}" -v -x -f "$datatarball"
-
+    if [ "$toolname" != "netmhciipan" ]; then
+        tar -C "${toolname}" -v -x -f "$datatarball"
+    fi
     #
     # CREATE VERSION FILE
     #

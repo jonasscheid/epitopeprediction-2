@@ -107,7 +107,19 @@ class PredictionResult():
         return df
 
     def _format_netmhciipan_prediction(self, threshold=None):
-        NotImplementedError()
+        df = self.prediction_df
+        df = df.rename(columns={'Peptide': 'sequence'})
+        df = df[df.columns[df.columns.str.contains('sequence|Rank|allele')]]
+        # We need to bring long format to wide format and need to get rid of duplicates
+        df = df.drop_duplicates(subset=['sequence', 'allele'])
+        df = df.pivot(index='sequence', columns='allele', values='Rank')
+        # Represent official allele names
+        df.columns = [f'netmhciipan_rank_{mhcgnomes.parse(col).to_string().replace("/","-")}' for col in df.columns]
+        df = df.reset_index()
+        if threshold:
+            # keep peptide if at least one allele has a score <= threshold
+            df = df[~df.iloc[:, 1:].gt(threshold).any(1)]
+        return df
 
 
 

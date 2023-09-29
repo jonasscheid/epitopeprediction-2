@@ -2,11 +2,10 @@ process NETMHCIIPAN {
     label 'process_single'
     tag "${metadata.sample}"
 
-
     container 'ghcr.io/jonasscheid/epitopeprediction-2:netmhc'
 
     input:
-    tuple val(metadata), path(peptide_file)
+    tuple val(metadata), path(peptide_file), path(nonfree_tools)
 
     output:
     tuple val(metadata), path("*.tsv"), emit: predicted
@@ -16,28 +15,24 @@ process NETMHCIIPAN {
     if (metadata.mhc_class != "II") {
         error "NETMHCIIPAN only supports MHC class II. Use NETMHCPAN for MHC class I, or adjust the samplesheet accordingly."
     }
-    // TODO: Preprocess peptide input for netmhcpan input -> line-separated list of peptides, no header
-    // TODO: Check allele support
-    // TODO: Postprocess output for netmhcpan output -> See epytope
+    def prefix = peptide_file.baseName
 
     """
-    #!/bin/bash
-    netMHCIIpan -f $peptide_file \\
-        -inptype 1 \\
-        -a DRB1_0101 \\
-        -xls \\
-        -xlsfile ${metadata.sample}_tmp_predicted.tsv
+    netmhciipan.py \
+        --input ${peptide_file} \
+        --output ${prefix}_predicted_netmhciipan.tsv \
+        --alleles '${metadata.alleles}' \
+        --sample_id ${metadata.sample}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python \$(python --version | sed 's/Python //g')
-        netmhciipan \$(cat data/version | sed -s 's/ version/:/g')
+
     END_VERSIONS
     """
-
     stub:
     """
-    touch ${metadata.sample}_predicted_netmhcpan.tsv
+    touch ${metadata.sample}_predicted_netmhciipan.tsv
     touch versions.yml
     """
 }
