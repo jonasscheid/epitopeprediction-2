@@ -37,7 +37,7 @@ def parse_args(argv=None) -> typing.List[str]:
 def main():
     args = parse_args()
 
-    min_length_given_by_netmhcpan = 8
+    min_length_given_by_netmhcpan = 9
     max_length_given_by_netmhcpan = 56
 
     # Parse input file and write to netmhcpan input format
